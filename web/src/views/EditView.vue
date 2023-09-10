@@ -2,21 +2,22 @@
   <section id="edit-view">
     <section id="file-tree"></section>
     <section id="edit">
-      <MarkdownEditor v-model:text="text" />
+      <Editor v-model:text="text" />
+      <p>{{ text }}</p>
     </section>
-    <MarkdownRenderer id="render" :source="text" />
+    <Renderer id="render" :source="text" />
   </section>
 </template>
 
 <script>
-import MarkdownEditor from '../components/MarkdownEditor.vue';
-import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+import Editor from '../components/Editor.vue';
+import Renderer from '@/components/Renderer.vue'
 
 export default {
   name: 'HomeView',
   components: {
-    MarkdownEditor,
-    MarkdownRenderer,
+    Editor,
+    Renderer,
   },
   data() {
     return {

@@ -1,0 +1,56 @@
+version: '3'
+services:
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - ./db-data/:/var/lib/postgresql/data/
+    expose: 
+      - "5432"
+    networks:
+      api_net:
+        ipv4_address: 172.16.25.2
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api/:/api/
+    environment:
+      - DB_URL=${DB_URL}
+      - ENV=development
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      api_net:
+        ipv4_address: 172.16.25.3
+  web:
+    image: "node:19.6.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+    environment:
+      - API_URL=${API_URL}
+    command: bash -c "cd /app && npm install && npm run dev -- --host"
+    networks:
+      web_net:
+        ipv4_address: 172.16.50.2
+    
+
+
+
+networks:
+  api_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.25.0/24
+  web_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.50.0/24
+

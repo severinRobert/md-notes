@@ -1,7 +1,7 @@
 <template>
   <textarea
     :value="text"
-    @change="$emit('update:text', text)"
+    @input="$emit('update:text', $event.target.value)"
     cols="30"
     rows="10"
     @keydown.ctrl.1.prevent="title($event, 1)"
@@ -22,7 +22,20 @@ export default {
       required: true
     }
   },
+  data() {
+    return {
+      updateCursor: false,
+      cursor: [0, 0],
+    }
+  },
   emits: ['update:text'],
+  updated() {
+    console.log(this.updateCursor, ...this.cursor)
+    if(this.updateCursor) {
+      document.getElementsByTagName('textarea')[0].setSelectionRange(...this.cursor)
+      this.updateCursor = false
+    }
+  },
   methods: {
     insert(text, symbole, index) {
       console.log(text, symbole, index)
@@ -43,6 +56,9 @@ export default {
         text.slice(after)
       )
     },
+    remove(text, start, end) {
+      return text.slice(0, start) + text.slice(end)
+    },
     isSurrounded(text, symbole) {
       if (
         text.slice(0, symbole.length) == symbole &&
@@ -52,28 +68,37 @@ export default {
       }
       return false
     },
+    changeCursor(start, end) {
+      this.cursor = [start, end]
+      this.updateCursor = true
+    },
     title(e, number) {
       console.log('title ', number)
       const startOfTheLine = this.text.lastIndexOf('\n', e.target.selectionStart) + 1
       console.log(startOfTheLine)
-      this.$emit("update:text", this.insert(this.text, '#'.repeat(number) + ' ', startOfTheLine))
+      const symboleToAdd = '#'.repeat(number) + ' '
+      if(this.text.slice(startOfTheLine, startOfTheLine+symboleToAdd.length) == symboleToAdd) {
+        this.$emit("update:text", this.remove(this.text, startOfTheLine, startOfTheLine+symboleToAdd.length))
+        return;
+      }
+      this.$emit("update:text", this.insert(this.text, symboleToAdd, startOfTheLine))
     },
     bold(e) {
       const selectionStart = e.target.selectionStart
       const selectionEnd = e.target.selectionEnd
+      this.changeCursor(selectionStart+2, selectionEnd+2)
       if (this.isSurrounded(this.text.slice(selectionStart, selectionEnd), '__')) {
-        this.$emit("update:text", this.removeSymbole(this.text, '__', selectionStart, selectionEnd))
+        this.$emit("update:text", this.removeAround(this.text, '__', selectionStart, selectionEnd))
       } else {
         this.$emit("update:text", this.surround(this.text, '__', selectionStart, selectionEnd))
       }
-      console.log(document.getElementsByTagName('textarea')[0].value)
-      document.getElementsByTagName('textarea')[0].setSelectionRange(selectionStart, selectionEnd)
     },
     italic(e) {
       const selectionStart = e.target.selectionStart
       const selectionEnd = e.target.selectionEnd
+      this.changeCursor(selectionStart+1, selectionEnd+1)
       if (this.isSurrounded(this.text.slice(selectionStart, selectionEnd), '_')) {
-        this.$emit("update:text", this.removeSymbole(this.text, '_', selectionStart, selectionEnd))
+        this.$emit("update:text", this.removeAround(this.text, '_', selectionStart, selectionEnd))
       } else {
         this.$emit("update:text", this.surround(this.text, '_', selectionStart, selectionEnd))
       }
