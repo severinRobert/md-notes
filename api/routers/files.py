@@ -1,41 +1,38 @@
-from fastapi import HTTPException, status, APIRouter, Response, Depends
+from fastapi import status, APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from auth import JWTBearer
+from folder import Folder
 
+
+notes = Folder()
 
 router = APIRouter(
     prefix="/files",
     tags=["files"],
 )
 
-@router.post("", dependencies=[Depends(JWTBearer(role="Administrator"))])
-async def add_file(file: str, db: Session = Depends(get_db)):
+@router.post("") #, dependencies=[Depends(JWTBearer(role="Administrator"))])
+async def add_file(path: str):
     """Add a file."""
-    return None
+    return notes.touch(path)
 
+@router.get("/ls")
+async def get_file(path: str=""):
+    """Get all files."""
+    return notes.ls(path)
 
-@router.post("/details", dependencies=[Depends(JWTBearer(role="Administrator"))])
-async def add_selection(details: dict[str, int | dict], db: Session = Depends(get_db)):
-    return None
+@router.get("")
+async def get_file(path: str):
+    """Get a file content."""
+    return notes.cat(path)
 
-@router.get("", response_model=list[str])
-async def get_files(db: Session = Depends(get_db)):
-    """Get a list of all files."""
-    return None
-
-
-@router.get("/{id}")
-async def get_file_id(id: int, db: Session = Depends(get_db)):
-    """Get a file by id."""
-    return None
-
-@router.put("/{id}", dependencies=[Depends(JWTBearer(role="Administrator"))])
-async def update_file(id: int, file: str, db: Session = Depends(get_db)):
+@router.put("/{id}") #, dependencies=[Depends(JWTBearer(role="Administrator"))])
+async def update_file(path: str, text: str):
     """Update a file."""
-    return None
+    return notes.write(path, text)
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(JWTBearer(role="Administrator"))])
-async def delete_file(id: int, db: Session = Depends(get_db)):
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT) #, dependencies=[Depends(JWTBearer(role="Administrator"))])
+async def delete_file(path: str):
     """Delete a file."""
-    return None
+    return notes.rm(path)

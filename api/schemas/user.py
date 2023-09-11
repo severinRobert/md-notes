@@ -1,7 +1,6 @@
 from typing import Optional
 
 from models import Users
-from .offer import Offer
 from pydantic import BaseModel, constr, EmailStr
 from sqlalchemy.orm import Session
 import random
@@ -107,10 +106,6 @@ class User(BaseModel):
         user = await cls.get(id, db)
         if not user:
             raise Exception("User does not exist")
-
-        offers = await Offer.get_by_user_id(id, db)
-        for offer in offers:
-            await Offer.delete(offer.id, db)
 
         db.delete(user)
         db.commit()

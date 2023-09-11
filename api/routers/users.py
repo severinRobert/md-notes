@@ -1,13 +1,12 @@
 from datetime import timedelta
 
-from schemas import User, Role, FavoriteOffer, Offer, ProductField, ValueBool, ValueFloat, ValueInt, ValueString, Field, Selection
+from schemas import User, Role
 from fastapi import HTTPException, status, APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db
 from auth import create_access_token, get_payload, is_request_owner
-from utils import model_to_dict
 
 router = APIRouter(
     prefix="/users",
@@ -50,71 +49,6 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
         data={"sub": form_data.username, "role": role.name, "user_id": user.id}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
-@router.post("/favorites")
-async def user_favorites(favorite_offer: FavoriteOffer, request: Request, db: Session = Depends(get_db)):
-    """Post user favorite offer."""
-    if not is_request_owner(request, favorite_offer.user_id):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="You can't add other's favorites",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    return await FavoriteOffer.add(favorite_offer, db)
-
-@router.get("/{id}/favorites")
-async def user_favorites(id: int, request: Request, db: Session = Depends(get_db)):
-    """Get user favorites offers."""
-    if not is_request_owner(request, id):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="You can't see other's favorites",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    favorites = await FavoriteOffer.get_by_user_id(id, db)
-    return [fav.offer_id for fav in favorites]
-
-@router.get("/{id}/favorites/details")
-async def user_favorites_details(id: int, request: Request, db: Session = Depends(get_db)):
-    """Get user favorites offers with details."""
-    if not is_request_owner(request, id):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="You can't see other's favorites",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    favorites = await FavoriteOffer.get_by_user_id(id, db)
-    offers = [model_to_dict(await Offer.get(fav.offer_id, db)) for fav in favorites]
-    for offer in offers:
-        fields = await ProductField.get_by_product_id(offer['product_id'], db)
-        fields = {f"{model_to_dict(field)['field_id']}":None for field in fields}
-        values_tables = [ValueBool, ValueFloat, ValueInt, ValueString]
-        for table in values_tables:
-            for value in await table.get_by_offer_id(offer['id'], db):
-                value = model_to_dict(value, exclude=['offer_id'])
-                field_id = value['field_id']
-                field = model_to_dict(await Field.get(field_id, db))
-                if field['type_id'] == 8:
-                    value = model_to_dict(await Selection.get(value['value'], db))
-                    fields[field_id] = value['name']
-                    continue
-                fields[field_id] = value['value']
-        
-        offer['fields'] = fields
-        offer['username'] = model_to_dict(await User.get(offer['owner_id'], db))['username']
-    return offers
-
-@router.delete("/{user_id}/favorites/{offer_id}")
-async def user_delete_favorite(user_id: int, offer_id: int, request: Request, db: Session = Depends(get_db)):
-    """Delete user favorite offer."""
-    if not is_request_owner(request, user_id):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="You can't delete other's favorites",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    favorite_offer = await FavoriteOffer.get_by_user_id_and_offer_id(user_id, offer_id, db)
-    return await FavoriteOffer.delete(favorite_offer.id, db)
 
 @router.get("/{id}/profile")
 async def user_profile(id: int, request: Request, db: Session = Depends(get_db)):

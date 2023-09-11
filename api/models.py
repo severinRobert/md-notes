@@ -30,7 +30,6 @@ class Users(Base):
     contact = Column(String(SMALLINT))
     password = Column(String(BIGINT), nullable=False)
     salt = Column(String(SMALLINT), nullable=False)
-    states_id = Column(Integer, ForeignKey("states.id"))
     roles_id = Column(Integer, ForeignKey("roles.id"))
 
 @event.listens_for(Users.__table__, 'after_create')
@@ -38,7 +37,7 @@ def insert_initial_values(target, connection, **kw):
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
     session = SessionLocal()
     session.add_all([
-        Users(username='admin', email='admin@outlook.com', password='d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892', salt='admin', states_id=1, roles_id=3),
+        Users(username='admin', email='admin@outlook.com', password='d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892', salt='admin', roles_id=3),
     ])
     session.commit()
 
